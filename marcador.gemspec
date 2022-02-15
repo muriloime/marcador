@@ -23,4 +23,6 @@ Gem::Specification.new do |spec|
   end
 
   spec.add_dependency "rails", ">= 7.0.1"
+  spec.add_dependency "importmap-rails", ">= 1.0"
+  spec.add_dependency "nokogiri"
 end

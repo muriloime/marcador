@@ -13,3 +13,60 @@
  *= require_tree .
  *= require_self
  */
+
+:root {
+  --marcador-me: #a3e635;
+  --marcador-me-hover: #65a30d;
+  --marcador-hover: #fcd34d;
+  --marcador: #d97706;
+}
+
+.marcador {
+  background: var(--marcador);
+  cursor: pointer;
+  margin: 1px;
+}
+
+.marcador:hover {
+  background: var(--marcador-hover);
+}
+
+.marcador-me {
+  background: var(--marcador-me);
+}
+
+.marcador-me:hover {
+  background: var(--marcador-me-hover);
+}
+
+.marcador-others {
+  background: var(--marcador);
+}
+.marcador-active {
+  background: #c1c124;
+}
+.marcador-poptip {
+  position: absolute;
+  font-size: 14px;
+  line-height: 15px;
+  text-align: center;
+  background: #adabab;
+  border: 1px solid #adabab;
+  border-radius: 5px;
+  padding: 5px;
+  color: white;
+  width: 130px;
+}
+.marcador-poptip .description {
+  font-size: 100%;
+  line-height: 140%;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.marcador-poptip .cancel_highlight {
+  font-size: 80%;
+  text-decoration: underline;
+  color: inherit;
+}

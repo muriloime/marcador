@@ -1,3 +1,3 @@
 Marcador::Engine.routes.draw do
-  resources :highlights, only: ['index']
+  resources :highlights, only: ['index', 'create', 'destroy']
 end

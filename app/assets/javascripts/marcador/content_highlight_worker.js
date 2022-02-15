@@ -1,5 +1,7 @@
 import rangy from "rangy";
-// import "rangy/lib/rangy-classapplier";
+import "rangy-classapplier";
+import { FetchRequest } from '@rails/request.js'
+
 
 import { addMultipleEventListener, removeMultipleEventListener } from "./utils";
 
@@ -10,10 +12,10 @@ class ContentHighlightWorker {
   }
 
   sendToServerParams() {
-    var queryParams = new URLSearchParams();
+    const queryParams = new URLSearchParams();
     queryParams.set("highlightable_type", this.settings.highlightableType);
     queryParams.set("highlightable_id", this.settings.highlightableId);
-    queryParams.set("highlightable_column", this.settings.highlightableColumn);
+    queryParams.set("column", this.settings.highlightableColumn);
     return queryParams.toString();
   }
 
@@ -21,17 +23,17 @@ class ContentHighlightWorker {
     const defaultOptions = {
       highlightableType: "",
       highlightableId: "",
-      highlightableColumn: "",
+      highlightableColumn: "content",
       readOnly: false,
       nodeIdentifierKey: "chnode",
-      highlightClass: "content-highlight",
-      highlightIdentifyClassRoot: "content-highlight-identifier-",
-      highlightLifetimeClassRoot: "content-highlight-lifetime-",
-      highlightActiveClass: "content-highlight-active",
+      highlightClass: "marcador",
+      highlightIdentifyClassRoot: "marcador-identifier-",
+      highlightLifetimeClassRoot: "marcador-",
+      highlightActiveClass: "marcador-active",
       indexServerPath: "/marcador/highlights?",
-      addToServerPath: "/marcador/highlights/create?",
-      removeFromServerPath: "/marcador/highlights/destroy?",
-      popTipClass: "content-highlight-poptip",
+      addToServerPath: "/marcador/highlights?",
+      removeFromServerPath: "/marcador/highlights",
+      popTipClass: "marcador-poptip",
       popTipDefaultHead: "Highlight",
     };
     return { ...defaultOptions, ...options };
@@ -39,6 +41,7 @@ class ContentHighlightWorker {
 
   init() {
     rangy.init();
+
     this.getContentHighlightsFromServer();
     if (!this.settings.readOnly) {
       addMultipleEventListener(this.element, "mouseup touchend", (event) =>
@@ -47,33 +50,38 @@ class ContentHighlightWorker {
     }
   }
 
+  getCommonAncestor(selection){
+    const range = selection.getRangeAt(0);
+
+    var commonAncestor = range.commonAncestorContainer;
+    while (
+      commonAncestor.dataset == undefined ||
+      commonAncestor.dataset[this.settings.nodeIdentifierKey] == undefined
+    ) {
+      commonAncestor = commonAncestor.parentNode;
+      if (
+        commonAncestor == undefined || commonAncestor.contains(this.element)
+      ) {
+        break;
+      }
+    }
+    return commonAncestor;
+  }
+
   initializeHighlighter(event) {
     const selection = rangy.getSelection();
-    if (selection.isCollapsed == false && selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0);
-      var commonAncestor = range.commonAncestorContainer;
-      while (
-        commonAncestor.dataset == undefined ||
-        commonAncestor.dataset[this.settings.nodeIdentifierKey] == undefined
-      ) {
-        commonAncestor = commonAncestor.parentNode;
-        if (
-          commonAncestor == undefined ||
-          commonAncestor.contains(this.element)
-        ) {
-          return;
-        }
-      }
+    if (!selection.isCollapsed && selection.rangeCount > 0) {
+      const commonAncestor = this.getCommonAncestor(selection);
+
       const bookmarkObject = selection.getBookmark(commonAncestor);
       if (bookmarkObject && bookmarkObject.rangeBookmarks.length > 0) {
         const highlightParams = {
-          common_ancestor_node_type: commonAncestor.tagName,
-          common_ancestor_identifier_key: this.settings.nodeIdentifierKey,
-          common_ancestor_identifier:
-            commonAncestor.dataset[this.settings.nodeIdentifierKey],
-          start_offset: bookmarkObject.rangeBookmarks[0].start,
-          end_offset: bookmarkObject.rangeBookmarks[0].end,
-          backward: bookmarkObject.backward,
+          container_node_type: commonAncestor.tagName,
+          container_node_identifier_key: this.settings.nodeIdentifierKey,
+          container_node_identifier: commonAncestor.dataset[this.settings.nodeIdentifierKey],
+          startnode_offset: bookmarkObject.rangeBookmarks[0].start,
+          endnode_offset: bookmarkObject.rangeBookmarks[0].end,
+          selection_backward: bookmarkObject.backward,
           content: selection.toString(),
         };
         this.saveContentHighlightsToServer(
@@ -119,13 +127,10 @@ class ContentHighlightWorker {
 
   removeContentHighlightsFromServer(highlightElement) {
     if (highlightElement.className != undefined) {
-      const removeHighlightParams = {
-        content_highlight_id: this.getHighlightId(highlightElement),
-      };
       this.ajaxLoader(
-        "POST",
-        this.settings.removeFromServerPath + this.sendToServerParams(),
-        removeHighlightParams,
+        "DELETE",
+        this.settings.removeFromServerPath + `/${this.getHighlightId(highlightElement)}?`+ this.sendToServerParams(),
+        {},
         (removableHighlights) => {
           this.modifyContentHighlights(removableHighlights, "destroy");
         }
@@ -156,11 +161,10 @@ class ContentHighlightWorker {
   }
 
   modifyContentHighlights(contentHighlights, modifyAction) {
-    var selection = rangy.getSelection();
+    const selection = rangy.getSelection();
     contentHighlights.forEach((highlightableObject) => {
-      const containerNode = this.element.querySelector(
-        `${highlightableObject.common_ancestor_node_type}[data-${this.settings.nodeIdentifierKey}="${highlightableObject.common_ancestor_identifier}"]`
-      );
+      const x = `${highlightableObject.common_ancestor_node_type}[data-${this.settings.nodeIdentifierKey}="${highlightableObject.container_node_identifier}"]`
+      const containerNode = this.element.querySelector(x);
       if (containerNode != undefined) {
         const bookmarkObject = {
           backward: highlightableObject.backward,
@@ -173,15 +177,13 @@ class ContentHighlightWorker {
           ],
         };
         const classApplier = rangy.createClassApplier(
-          this.settings.highlightIdentifyClassRoot +
-            highlightableObject.identifier,
+          this.settings.highlightIdentifyClassRoot + highlightableObject.identifier,
           { elementProperties: { className: this.settings.highlightClass } }
         );
         selection.moveToBookmark(bookmarkObject);
         if (selection.toString() == highlightableObject.content) {
           const elementSet = this.element.getElementsByClassName(
-            this.settings.highlightIdentifyClassRoot +
-              highlightableObject.identifier
+            this.settings.highlightIdentifyClassRoot + highlightableObject.identifier
           );
           switch (modifyAction) {
             case "add":
@@ -212,7 +214,7 @@ class ContentHighlightWorker {
 
               if (
                 document.querySelectorAll(
-                  ".content-highlight:not(.content-highlight-lifetime-me)"
+                  ".content-highlight:not(.marcador-me)"
                 ).length
               ) {
                 this.getContentHighlightsFromServer();
@@ -282,7 +284,7 @@ class ContentHighlightWorker {
   showPopTipFor(element, clickEvent) {
     this.removePopTip();
 
-    if (element.classList.contains("content-highlight-lifetime-others")) {
+    if (element.classList.contains("marcador-others")) {
       return;
     }
 
@@ -296,7 +298,7 @@ class ContentHighlightWorker {
 
     const highlightId = this.getHighlightId(element);
     document
-      .querySelector(".content-highlight-identifier-" + highlightId)
+      .querySelector(".marcador-identifier-" + highlightId)
       .classList.add(this.settings.highlightActiveClass);
   }
 
@@ -337,27 +339,16 @@ class ContentHighlightWorker {
   }
 
   ajaxLoader(requestType, url, params, callbackFunc) {
-    var xmlhttp = new XMLHttpRequest();
-    xmlhttp.open(requestType, url, true);
-    xmlhttp.setRequestHeader(
-      "Content-type",
-      "application/x-www-form-urlencoded"
-    );
-    xmlhttp.setRequestHeader("Accept", "application/json");
-    if (document.querySelector('meta[name="csrf-token"]') != null) {
-      xmlhttp.setRequestHeader(
-        "X-CSRF-Token",
-        document.querySelector('meta[name="csrf-token"]').content
-      );
-    }
-    xmlhttp.onreadystatechange = (event) => {
-      if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
-        const data = JSON.parse(xmlhttp.responseText);
-        callbackFunc(data.all_highlights);
-      }
-    };
+    const body = (requestType == 'GET') ? {} : {body: params}
+    const request = new FetchRequest(requestType, url , body ); // JSON.stringify({ name: 'Request.JS' }) })
 
-    xmlhttp.send(new URLSearchParams(params).toString());
+    request.perform().then( (response) => {
+      if (response.statusCode == 200) {
+        response.json.then((data) => {
+          callbackFunc(data.highlights);
+        });
+      }
+    });
   }
 }
 

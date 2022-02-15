@@ -1,5 +1,8 @@
 # Marcador
-Short description and motivation.
+
+Engine to make text highlights with persistence (like in medium.com) easy and configurable.
+
+This gem is highly inspired by [acts_as_content_highlightable](https://github.com/kbravi/acts_as_content_highlightable), but using a more modern approach ( importmap, es6, migrations on engine, etc).
 
 ## Usage
 How to use my plugin.

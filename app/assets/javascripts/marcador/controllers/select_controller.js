@@ -13,10 +13,8 @@ export default class extends Controller {
   static targets = [ "input" ]
 
   connect() {
-    console.log('select controller connected');
     // this.outputTarget.textContent = 'Hello, Stimulus!'
 
-    console.log('input')
     const input = document.querySelector('#input');
     input.addEventListener('select', this.logSelection);
 
