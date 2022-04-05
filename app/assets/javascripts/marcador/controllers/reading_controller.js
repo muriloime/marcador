@@ -9,7 +9,7 @@ export default class extends Controller {
 
     const worker = new ContentHighlightWorker(this.highlightableTarget, {
       // nodeIdentifierKey: this.data.get("key"),
-      highlightableType: "Post",
+      highlightableType: this.data.get("type"),
       highlightableId: this.data.get("id"),
     //   highlightableColumn: "body", // required if your model has more than 1 highlightable column
       readOnly: false,
