@@ -3,7 +3,7 @@ import "rangy-classapplier";
 import { FetchRequest } from '@rails/request.js'
 
 
-import { addMultipleEventListener, removeMultipleEventListener } from "./utils";
+import { addMultipleEventListener, removeMultipleEventListener } from "utils";
 
 class ContentHighlightWorker {
   constructor(element, options) {
