@@ -203,19 +203,15 @@ class ContentHighlightWorker {
               }
               break;
             case "destroy":
-              this.removeDataAttributesFromElements(elementSet, [
-                ["description", highlightableObject.description],
-                ["removable", highlightableObject.can_cancel],
-              ]);
-              this.removeLifetimeClassesFromElements(elementSet);
-              this.removeEventListenersFromHighlights(elementSet);
-              this.unmarkActiveHighlights();
+              // this.removeDataAttributesFromElements(elementSet, ["description","removable"]);
+              // this.removeLifetimeClassesFromElements(elementSet);
+              // this.removeEventListenersFromHighlights(elementSet);
+              // this.removeClasses();
+              
               classApplier.undoToSelection();
 
               if (
-                document.querySelectorAll(
-                  ".content-highlight:not(.marcador-me)"
-                ).length
+                document.querySelectorAll(".marcador:not(.marcador-me)").length
               ) {
                 this.getContentHighlightsFromServer();
               }
@@ -237,23 +233,25 @@ class ContentHighlightWorker {
         this.settings.highlightLifetimeClassRoot + lifetimeClassEnd
     );
 
-    for (let element of anyElements) {
+    for (const element of anyElements) {
       element.classList.add(newClasses);
     }
   }
 
+  removeClassByPrefix(node, prefix) {
+    const regx = new RegExp('\\b' + prefix + '[^ ]*[ ]?\\b', 'g');
+    node.className = node.className.replaceAll(regx, '');
+    return node;
+  }
+
   removeLifetimeClassesFromElements(anyElements) {
-    for (let element of anyElements) {
-      element.classList.forEach((klass) => {
-        if (klass.includes(this.settings.highlightLifetimeClassRoot)) {
-          element.classList.remove(klass);
-        }
-      });
+    for (const element of anyElements) {
+      this.removeClassByPrefix(element, this.settings.highlightLifetimeClassRoot)
     }
   }
 
   addDataAttributesToElements(anyElements, dataAttributesArray) {
-    for (let element of anyElements) {
+    for (const element of anyElements) {
       dataAttributesArray.forEach((dataAttribute) => {
         element.dataset[dataAttribute[0]] = dataAttribute[1];
       });
@@ -261,9 +259,9 @@ class ContentHighlightWorker {
   }
 
   removeDataAttributesFromElements(anyElements, dataAttributesArray) {
-    for (let element of anyElements) {
+    for (const element of anyElements) {
       dataAttributesArray.forEach((dataAttribute) => {
-        delete element.dataset[dataAttribute[0]];
+        delete element.dataset[dataAttribute];
       });
     }
   }
@@ -272,13 +270,9 @@ class ContentHighlightWorker {
     element.classList.add(this.settings.highlightActiveClass);
   }
 
-  unmarkActiveHighlights() {
-    const activeHighlights = this.element.getElementsByClassName(
-      this.settings.highlightActiveClass
-    );
-    for (let activeHighlight of activeHighlights) {
-      activeHighlight.classList.remove(this.settings.highlightActiveClass);
-    }
+  removeClasses(klass = this.settings.highlightActiveClass) {
+    const elements = this.element.getElementsByClassName(klass);
+    Array.from(elements).forEach((el) => el.classList.remove(klass));
   }
 
   showPopTipFor(element, clickEvent) {
@@ -306,7 +300,7 @@ class ContentHighlightWorker {
     if (this.popTip != undefined) {
       this.element.removeChild(this.popTip);
       this.popTip = undefined;
-      this.unmarkActiveHighlights();
+      this.removeClasses();
       window.removeEventListener("resize", (e) => this.removePopTip(e));
       removeMultipleEventListener(document, "click touch", (e) =>
         this.removePopTip(e)
@@ -316,11 +310,9 @@ class ContentHighlightWorker {
 
   buildPopupFromHighlightElement(element) {
     const popTip = document.createElement("div");
+    const description = element.dataset.description || this.settings.popTipDefaultHead
     popTip.className = this.settings.popTipClass;
-    popTip.innerHTML =
-      "<span class='description'>" +
-      (element.dataset.description || this.settings.popTipDefaultHead) +
-      "</span>";
+    popTip.innerHTML = `<span class='description'>${description}</span>`
     if (element.dataset.removable == "true") {
       popTip.innerHTML +=
         "<a href='javascript:void(0);' class='cancel_highlight'>click to remove</a>";
