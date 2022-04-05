@@ -1,34 +1,45 @@
 module Marcador
   class HighlightsController < ApplicationController
     def index
-      render json: { highlights: query.enrich_highlights(@highlighter_user) }
+      render json: { highlights: query.enrich_highlights(highlighter_user) }
     end
 
     def create
-      if highlightable.present? and Highlight.can_add_highlights?(highlightable, highlighter_user)
-        highlight = query.new(highlight_params.merge({
-                                                       column: column
-                                                     }))
-        highlight.save
-        show_highlights = query.enrich_highlights(@highlighter_user)
-      else
-        show_highlights = []
-      end
       render json: { highlights: show_highlights }
     end
 
     def destroy
-      highlight = highlightable.highlights.where(id: params[:id]).first
-      if highlight.present? && (highlight.respond_to?(:can_remove_highlight?) ? highlight.can_remove_highlight?(highlighter_user) : (highlight.user == highlighter_user))
-        remove_highlights = highlightable.highlights.where(id: highlight.id).enrich_highlights(highlighter_user).as_json
-        highlight.destroy
-      else
-        remove_highlights = []
-      end
       render json: { highlights: remove_highlights }
     end
 
     private
+
+    def show_highlights
+      if highlightable.present? && Highlight.can_add_highlights?(highlightable, highlighter_user)
+        highlight = query.new(highlight_params.merge({ column: column }))
+        highlight.save
+        query.enrich_highlights(highlighter_user)
+      else
+        []
+      end
+    end
+
+    def remove_highlights
+      if highlight.present? && can_destroy?
+        highlight.destroy
+        highlightable.highlights.where(id: params[:id]).enrich_highlights(highlighter_user).as_json
+      else
+        []
+      end
+    end
+
+    def can_destroy?
+      highlight.respond_to?(:can_remove_highlight?) ? highlight.can_remove_highlight?(highlighter_user) : (highlight.user == highlighter_user)
+    end
+
+    def highlight
+      @highlight ||= highlightable.highlights.where(id: params[:id]).first
+    end
 
     def query
       Highlight.where(highlightable: highlightable, user: highlighter_user)
@@ -54,8 +65,9 @@ module Marcador
     end
 
     def highlighter_user
-      @highlighter_user = User.first
-      # @highlighter_user ||= (self.respond_to?(:current_user) && self.current_user) || (self.respond_to?(:current_resource_owner, true) && self.send(:current_resource_owner)) || nil
+      @highlighter_user ||= (respond_to?(:current_user) && current_user) || (respond_to?(
+        :current_resource_owner, true
+      ) && send(:current_resource_owner)) || nil
     end
 
     def column
