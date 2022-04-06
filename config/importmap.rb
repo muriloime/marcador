@@ -6,8 +6,7 @@ pin '@rails/request.js', to: 'https://ga.jspm.io/npm:@rails/request.js@0.0.6/src
 # pin "marcador/application", preload: true
 pin 'application', to: 'marcador/application.js', preload: true
 
-pin 'content_highlight_worker', to: 'marcador/content_highlight_worker', preload: true
-pin 'utils', to: 'marcador/utils', preload: true
+pin_all_from Marcador::Engine.root.join('app/assets/javascripts/marcador'), under: 'marcador', to: 'marcador'
 
 pin_all_from Marcador::Engine.root.join('app/assets/javascripts/marcador/controllers'), under: 'controllers',
                                                                                         to: 'marcador/controllers'

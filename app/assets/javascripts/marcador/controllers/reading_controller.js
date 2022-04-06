@@ -1,5 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
-import ContentHighlightWorker from "content_highlight_worker";
+import ContentHighlightWorker from "marcador/content_highlight_worker";
 
 export default class extends Controller {
   static targets = ["highlightable"];
