@@ -13,7 +13,7 @@ module Marcador
 
       class_eval %{
         def highlightable_columns
-          return #{column_names.map(&:to_s)}
+          #{column_names.map(&:to_s)}
         end
         def prepare_for_highlights
           #{column_names}.each do |column_name|
